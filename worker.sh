@@ -1,40 +1,37 @@
 #!/bin/bash
 
-IP="192.16.199.166"
-PORT="443"
-
-
 DROP_ROOT="/tmp/drop_root"
+PROBE_DIR="probe.d"
+
+IP="192.16.199.166"
 
 
-function download_it() {
-    IP=$1
-    PORT=$2
-    OUTPUT=$3
-
-    CONNECT_STRING="${IP}:${PORT}"
-
-    bash download_ssl.sh "$CONNECT_STRING" > "${OUTPUT}" 2>&1
-}
-
-
-function download_to_file() {
+function probe_host() {
     OCTET_1=$1
     OCTET_2=$2
     OCTET_3=$3
     OCTET_4=$4
-    PORT=$5
 
     IP="${OCTET_1}.${OCTET_2}.${OCTET_3}.${OCTET_4}"
 
-    if [ ! -d "${DROP_ROOT}" ]; then
-        mkdir -p "${DROP_ROOT}"
+    # Make the directory for the results about this host
+    PROBE_DROP_OUTPUT_DIR="${DROP_ROOT}/${OCTET_1}/${OCTET_2}/${OCTET_3}/${OCTET_4}"
+
+    if [ ! -d "${PROBE_DROP_OUTPUT_DIR}" ]; then
+        mkdir -p "${PROBE_DROP_OUTPUT_DIR}" || exit 1
     fi
 
-    FILE_DROP="${DROP_ROOT}/${IP}:${PORT}.raw"
-
-    download_it "${IP}" "${PORT}" "${FILE_DROP}"
+    ### Launch Probes - Extend if there are more here
+    probe_HTTPS ${PROBE_DROP_OUTPUT_DIR} ${IP}
 }
 
 
-download_to_file 192 16 199 166 443
+# Source the probes
+for probe_file in `ls ${PROBE_DIR}/`; do
+    if [ -f "${PROBE_DIR}/$probe_file" ]; then
+        source "${PROBE_DIR}/$probe_file"
+    fi
+done
+
+
+probe_host 192 16 199 166
