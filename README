@@ -1,0 +1,11 @@
+Trying to download all the SSL certificate chains in the 2^32 space.
+
+First attempt to scan port 443 (HTTPS) exclusively.
+
+
+Todo
+---
+-
+Add a timeout
+Make a file based database out of the 
+
