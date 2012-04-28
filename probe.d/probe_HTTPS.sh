@@ -34,3 +34,16 @@ function probe_HTTPS() {
 
     return $RC
 }
+
+
+### Main
+if [ "$#" != "2" ]; then
+    echo "Error: Expected the output dir and the IP address here: $@"
+    exit 1
+fi
+
+PROBE_DROP_OUTPUT_DIR=$1
+IP=$2
+probe_HTTPS "${PROBE_DROP_OUTPUT_DIR}" "${IP}"
+
+sleep 4
