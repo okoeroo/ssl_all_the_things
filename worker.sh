@@ -64,7 +64,7 @@ function probe_host() {
     IP="${OCTET_1}.${OCTET_2}.${OCTET_3}.${OCTET_4}"
 
     # Add pre-launch probes, like is there a port 443 alive
-    probe_launcher "${PROBE_DIR}/probe_nc_connect.sh" "${PROBE_TIMEOUT}" "${PROBE_DROP_OUTPUT_DIR}" "${IP}" "443"
+    probe_launcher "${PROBE_DIR}/probe_nc_connect.sh" "${PROBE_TIMEOUT}" "${PROBE_DROP_OUTPUT_DIR}" "${IP}" "443" || return 1
 
 
     # Make the directory for the results about this host
@@ -78,6 +78,7 @@ function probe_host() {
     ### Launch Probes - Extend if there are more here
     probe_launcher "${PROBE_DIR}/probe_HTTPS.sh" "${PROBE_TIMEOUT}" "${PROBE_DROP_OUTPUT_DIR}" "${IP}"
     RC=$?
+    return $RC
 }
 
 
@@ -92,12 +93,9 @@ else
     number_is_octet $4 || exit 1
 fi
 
-# Source the probes
-#for probe_file in `ls ${PROBE_DIR}/`; do
-#    if [ -f "${PROBE_DIR}/$probe_file" ]; then
-#        source "${PROBE_DIR}/$probe_file"
-#    fi
-#done
-
 # Engage !
 probe_host $1 $2 $3 $4
+RC=$?
+
+exit $RC
+
