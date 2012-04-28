@@ -45,5 +45,3 @@ fi
 PROBE_DROP_OUTPUT_DIR=$1
 IP=$2
 probe_HTTPS "${PROBE_DROP_OUTPUT_DIR}" "${IP}"
-
-sleep 4

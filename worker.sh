@@ -2,7 +2,7 @@
 
 PROBE_DROP_ROOT="${PROBE_DROP_ROOT:-/tmp/drop_root}"
 PROBE_DIR="${PROBE_DIR:-probe.d}"
-TIMEOUT=1
+PROBE_TIMEOUT="${PROBE_TIMEOUT:-10}"
 
 ### Helper
 function number_is_octet() {
@@ -18,24 +18,16 @@ function number_is_octet() {
     return 1
 }
 
-### Probe activitor
-function probe_host() {
-    OCTET_1=$1
-    OCTET_2=$2
-    OCTET_3=$3
-    OCTET_4=$4
-
-    IP="${OCTET_1}.${OCTET_2}.${OCTET_3}.${OCTET_4}"
-
-    # Make the directory for the results about this host
-    PROBE_DROP_OUTPUT_DIR="${PROBE_DROP_ROOT}/${OCTET_1}/${OCTET_2}/${OCTET_3}/${OCTET_4}"
-
-    if [ ! -d "${PROBE_DROP_OUTPUT_DIR}" ]; then
-        mkdir -p "${PROBE_DROP_OUTPUT_DIR}" || exit 1
-    fi
+### Probe activitors
+function probe_launcher() {
+    PROBE_SCRIPT=$1
+    THE_PROBE_TIMEOUT=$2
+    PROBE_DROP_OUTPUT_DIR=$3
+    IP=$4
+    PORT=$5
 
     ### Launch Probes - Extend if there are more here
-    ${PROBE_DIR}/probe_HTTPS.sh "${PROBE_DROP_OUTPUT_DIR}" "${IP}" &
+    "${PROBE_SCRIPT}" "${PROBE_DROP_OUTPUT_DIR}" "${IP}" $PORT &
 
     CHILD=$!
     NOW=`date "+%s"`
@@ -47,12 +39,45 @@ function probe_host() {
         CURRENT=`date "+%s"`
         SPEND_TIME=$(($CURRENT-$NOW))
 
-        if [ "${SPEND_TIME}" -gt "$TIMEOUT" ]; then
+        if [ "${SPEND_TIME}" -gt "${THE_PROBE_TIMEOUT}" ]; then
             echo "Warning: Time out reached"
-            kill -9 $CHILD
+            kill -15 $CHILD
+            sleep 1
+
+            # if still there, kill it 4 real
+            kill -0 $CHILD > /dev/null 2>&1 && kill -9 $CHILD
             break
         fi
     done
+    wait $CHILD >/dev/null 2>&1
+    RC=$?
+    return $RC
+}
+
+
+function probe_host() {
+    OCTET_1=$1
+    OCTET_2=$2
+    OCTET_3=$3
+    OCTET_4=$4
+
+    IP="${OCTET_1}.${OCTET_2}.${OCTET_3}.${OCTET_4}"
+
+    # Add pre-launch probes, like is there a port 443 alive
+    probe_launcher "${PROBE_DIR}/probe_nc_connect.sh" "${PROBE_TIMEOUT}" "${PROBE_DROP_OUTPUT_DIR}" "${IP}" "443"
+
+
+    # Make the directory for the results about this host
+    PROBE_DROP_OUTPUT_DIR="${PROBE_DROP_ROOT}/${OCTET_1}/${OCTET_2}/${OCTET_3}/${OCTET_4}"
+
+    if [ ! -d "${PROBE_DROP_OUTPUT_DIR}" ]; then
+        mkdir -p "${PROBE_DROP_OUTPUT_DIR}" || exit 1
+    fi
+
+
+    ### Launch Probes - Extend if there are more here
+    probe_launcher "${PROBE_DIR}/probe_HTTPS.sh" "${PROBE_TIMEOUT}" "${PROBE_DROP_OUTPUT_DIR}" "${IP}"
+    RC=$?
 }
 
 
